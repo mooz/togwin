@@ -1,15 +1,15 @@
 #!/bin/sh
 
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 TITLE [ACTION]"
-    echo "Toggle focus of certain window specified by TITLE\n"
-    echo "  TITLE    regexp of window title"
+    echo "Usage: $0 COND [ACTION]"
+    echo "Toggle focus of certain window specified by COND\n"
+    echo "  COND     condition for window"
     echo "  ACTION   command which is executed when window"
-    echo "           specified by TITLE is not found"
+    echo "           specified by COND is not found"
     exit
 fi
 
-TITLE=$1
+COND=$1
 ACTION=$2
 
 action()
@@ -19,9 +19,12 @@ action()
     fi
 }
 
-TARGET_WID=`xdotool search --title $TITLE`
+TARGET_WID=`xdotool search $COND | head -1`
 ACTIVE_WID=`xdotool getactivewindow`
-PREV_WID_PATH=/tmp/prev_active_`echo ${TITLE} | md5sum - | sed -e "s/[ -]//g"`
+PREV_WID_PATH=/tmp/prev_active_`echo ${COND} | md5sum - | sed -e "s/[ -]//g"`
+
+echo "target : $TARGET_WID";
+echo "active : $TARGET_WID";
 
 raise_window()
 {
@@ -34,19 +37,19 @@ save_active_window()
     echo $ACTIVE_WID > $PREV_WID_PATH
 }
 
-if [ -z $TARGET_WID ]; then
+if [ -z "$TARGET_WID" ]; then
     # target is not running. execute action.
     save_active_window
     action
 else
     # target is running
 
-    if [ $ACTIVE_WID = $TARGET_WID ]; then
+    if [ "$ACTIVE_WID" = "$TARGET_WID" ]; then
         # already focused to target
         # Try to focus previous active window
         PREV_WID=`cat $PREV_WID_PATH 2> /dev/null`
 
-        if [ -n $PREV_WID ]; then
+        if [ -n "$PREV_WID" ]; then
             # raise previous active window
             raise_window $PREV_WID
         fi
