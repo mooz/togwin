@@ -14,8 +14,8 @@ ACTION=$2
 
 action()
 {
-    if [ -n $ACTION ]; then
-        $ACTION &
+    if [ -n "$ACTION" ]; then
+        $ACTION
     fi
 }
 
