@@ -21,7 +21,7 @@ action()
 
 TARGET_WID=`xdotool search --title $TITLE`
 ACTIVE_WID=`xdotool getactivewindow`
-PREV_WID_PATH=/tmp/${TITLE}_prev_active
+PREV_WID_PATH=/tmp/prev_active_`echo ${TITLE} | md5sum - | sed -e "s/[ -]//g"`
 
 raise_window()
 {
