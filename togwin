@@ -48,7 +48,7 @@ done
 
 COND=""
 [ -n "$CLASS" ] && COND="$COND --class '$CLASS'"
-[ -n "$NAME" ] && COND="$COND --name '$NAME'"
+[ -n "$NAME" ] && COND="$COND --title '$NAME'"
 
 if [ -z "$COND" ]; then
     echo "Specify at least 1 condition from --class, --name and --title\n"
