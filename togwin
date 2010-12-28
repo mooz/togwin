@@ -1,30 +1,84 @@
 #!/bin/sh
 
-if [ $# -lt 1 ]; then
-    echo "Usage: $0 COND [ACTION]"
-    echo "Toggle focus of certain window specified by COND\n"
-    echo "  COND     condition for window"
-    echo "  ACTION   command which is executed when window"
-    echo "           specified by COND is not found"
-    exit
-fi
-
-COND=$1
-ACTION=$2
-
-action()
+usage()
 {
-    if [ -n "$ACTION" ]; then
-        $ACTION
-    fi
+    echo >&2 "\
+Usage: $0 [--class CLASS] [--title|--name NAME] [--action ACTION]
+Toggle focus status of certain window.
+
+  CLASS    WM_CLASS of the window
+  NAME     WM_NAME of the window
+  ACTION   command which is executed when window is not found
+
+Use 'xprop WM_CLASS WM_NAME' to investigate the condition"
 }
 
-TARGET_WID=`xdotool search $COND | head -1`
-ACTIVE_WID=`xdotool getactivewindow`
-PREV_WID_PATH=/tmp/prev_active_`echo ${COND} | md5sum - | sed -e "s/[ -]//g"`
+if [ $# -lt 1 ]; then
+    usage
+    exit 1
+fi
 
-echo "target : $TARGET_WID";
-echo "active : $TARGET_WID";
+# ============================================================ #
+# Process Options
+# ============================================================ #
+
+unset GETOPT_COMPATIBLE
+OPT=`getopt -o "" -l class:,title:,name:,action: -- "$@"`
+
+if [ $? != 0 ]; then
+    echo ""
+    usage
+    exit 1
+fi
+
+eval set -- $OPT
+while [ -n "$1" ]; do
+    case $1 in
+        --class) CLASS=$2; shift 2;;
+        --title|--name) NAME=$2; shift 2;;
+        --action) ACTION=$2; shift 2;;
+        --) shift; break;;
+        *) echo "Unknown option $1\n"; usage; exit 1;;
+    esac
+done
+
+# ============================================================ #
+# Setup condition
+# ============================================================ #
+
+COND=""
+[ -n "$CLASS" ] && COND="$COND --class '$CLASS'"
+[ -n "$NAME" ] && COND="$COND --name '$NAME'"
+
+if [ -z "$COND" ]; then
+    echo "Specify at least 1 condition from --class, --name and --title\n"
+    usage
+    exit 1
+fi
+
+# ============================================================ #
+# Get IDs of target and active window
+# ============================================================ #
+
+TARGET_WID=`eval xdotool search $COND | head -1`
+ACTIVE_WID=`xdotool getactivewindow`
+
+# ============================================================ #
+# Create directory and get file path to store ID
+# ============================================================ #
+
+PREV_WID_DIR="/tmp/togwin_dir"
+
+if [ ! -d $PREV_WID_DIR ]; then
+    mkdir "$PREV_WID_DIR"
+fi
+
+PREV_WID_FILE=`echo ${COND} | md5sum - | sed -e "s/[ -]//g"`
+PREV_WID_PATH="$PREV_WID_DIR/$PREV_WID_FILE"
+
+# ============================================================ #
+# Main
+# ============================================================ #
 
 raise_window()
 {
@@ -40,7 +94,9 @@ save_active_window()
 if [ -z "$TARGET_WID" ]; then
     # target is not running. execute action.
     save_active_window
-    action
+    if [ -n "$ACTION" ]; then
+        $ACTION
+    fi
 else
     # target is running
 
